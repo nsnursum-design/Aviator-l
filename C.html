@@ -1,0 +1,2009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Aviator</title>
+
+  <!-- Firebase App & Realtime Database SDK (Matched with FD44) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-body: #0a0b0e;
+      --bg-header: #101115;
+      --bg-panel: #14151b;
+      --bg-control: #1a1b22;
+      --bg-input: #090a0d;
+      --border-subtle: #242632;
+      --aviator-red: #e5053a;
+      --aviator-red-dark: #8b001f;
+      --aviator-green: #28a909;
+      --aviator-green-hover: #2ec00a;
+      --aviator-orange: #ff7700;
+      --aviator-blue: #2ba3e8;
+      --aviator-purple: #9b30ff;
+      --text-white: #ffffff;
+      --text-gray: #787d8f;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-white);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ================= INTRO LOADING SPLASH SCREEN ================= */
+    #splashScreen {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, #151824 0%, #050608 100%);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.6s ease-out;
+    }
+
+    .splash-plane-wrap {
+      width: 220px;
+      height: 140px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.8s cubic-bezier(0.55, 0.055, 0.675, 0.19), opacity 0.8s ease;
+    }
+
+    .splash-plane-wrap.fly-away {
+      transform: translate(320px, -240px) scale(0.65) rotate(-20deg);
+      opacity: 0;
+    }
+
+    .splash-logo {
+      font-family: "Arial Black", Gadget, sans-serif;
+      font-style: italic;
+      font-size: 2.3rem;
+      font-weight: 900;
+      color: #e5053a;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
+      text-shadow: 0 0 25px rgba(229, 5, 58, 0.7);
+    }
+
+    .splash-progress-track {
+      width: 190px;
+      height: 4px;
+      background: #1e2230;
+      border-radius: 6px;
+      margin-top: 24px;
+      overflow: hidden;
+    }
+
+    .splash-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #e5053a, #ff3253);
+      border-radius: 6px;
+      transition: width 0.1s linear;
+    }
+
+    .splash-subtext {
+      font-size: 0.75rem;
+      color: #7b8296;
+      margin-top: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    header {
+      background: var(--bg-header);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1c1e27;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .aviator-logo {
+      font-family: "Arial Black", Gadget, sans-serif;
+      font-style: italic;
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #e5053a;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .balance-display {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #28a909;
+      background: #090a0d;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid #202430;
+      white-space: nowrap;
+    }
+
+    .btn-header-icon {
+      background: transparent;
+      border: none;
+      color: var(--text-gray);
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s, transform 0.1s;
+    }
+    .btn-header-icon:active { transform: scale(0.9); }
+    .btn-header-icon:hover { color: #fff; }
+
+    .history-row {
+      background: #0e0f14;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      border-bottom: 1px solid #181a23;
+    }
+    .history-row::-webkit-scrollbar { display: none; }
+
+    .pill {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #141722;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-feature-settings: "tnum";
+      flex-shrink: 0;
+    }
+    .pill-blue { color: #2ba3e8; background: rgba(43, 163, 232, 0.12); }
+    .pill-purple { color: #d638ff; background: rgba(214, 56, 255, 0.14); }
+    .pill-gold { color: #ffd000; background: rgba(255, 208, 0, 0.16); }
+
+    .app-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 6px;
+      gap: 8px;
+    }
+
+    .viewport-box {
+      position: relative;
+      background: #000000;
+      border-radius: 18px;
+      border: 1px solid #212532;
+      overflow: hidden;
+      height: 48vh;
+      min-height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    }
+
+    canvas#flightCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .multiplier-center {
+      position: relative;
+      top: 20%;
+      z-index: 5;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .live-multi-text {
+      font-size: clamp(3.4rem, 10vw, 5.8rem);
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1;
+      letter-spacing: -1.5px;
+      font-feature-settings: "tnum";
+      text-shadow: 0 4px 30px rgba(0, 0, 0, 0.9);
+    }
+
+    .crash-title {
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: #e5053a;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 8px;
+      text-shadow: 0 0 15px rgba(229, 5, 58, 0.8);
+      display: none;
+    }
+
+    .countdown-layer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 6;
+      text-align: center;
+      display: none;
+    }
+
+    .countdown-title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--text-gray);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .countdown-timer-val {
+      font-size: 2.6rem;
+      font-weight: 900;
+      color: #ff3253;
+    }
+
+    .progress-bar-slot {
+      width: 180px;
+      height: 5px;
+      background: #1c1f2a;
+      border-radius: 4px;
+      margin: 8px auto 0 auto;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: #e5053a;
+      transition: width 0.1s linear;
+    }
+
+    .online-chip {
+      position: absolute;
+      bottom: 12px;
+      right: 14px;
+      background: rgba(18, 20, 28, 0.85);
+      border: 1px solid #282d3e;
+      border-radius: 20px;
+      padding: 3px 10px 3px 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 8;
+      backdrop-filter: blur(4px);
+    }
+
+    .avatar-stack {
+      display: flex;
+      align-items: center;
+    }
+
+    .avatar-stack span {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid #14151b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      font-weight: bold;
+      margin-right: -6px;
+    }
+    .av-1 { background: #ffaa00; color: #000; }
+    .av-2 { background: #00c0ff; color: #000; }
+    .av-3 { background: #ff0055; color: #fff; }
+
+    .online-count {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #b1b6c7;
+      margin-left: 8px;
+    }
+
+    .game-toast {
+      position: absolute;
+      top: 18px;
+      padding: 8px 18px;
+      border-radius: 24px;
+      font-weight: 900;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      z-index: 50;
+      display: none;
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.6) translateY(-20px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .toast-success {
+      background: #28a909;
+      color: #ffffff;
+      border: 1.5px solid #45e31f;
+      box-shadow: 0 0 25px rgba(40, 169, 9, 0.7);
+    }
+
+    .toast-loss {
+      background: #e5053a;
+      color: #ffffff;
+      border: 1.5px solid #ff4e76;
+      box-shadow: 0 0 25px rgba(229, 5, 58, 0.7);
+    }
+
+    .bet-deck {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    @media (max-width: 680px) {
+      .bet-deck {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .bet-card {
+      background: var(--bg-panel);
+      border-radius: 16px;
+      border: 1px solid #1f222d;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mode-tabs {
+      display: flex;
+      background: #090a0d;
+      border-radius: 20px;
+      padding: 2px;
+      width: 170px;
+      margin: 0 auto;
+      border: 1px solid #202330;
+    }
+
+    .mode-tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-gray);
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 4px 0;
+      border-radius: 16px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .mode-tab-btn.active {
+      background: #252836;
+      color: #fff;
+    }
+
+    .bet-card-main {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .inputs-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stepper-row {
+      background: #090a0d;
+      border: 1px solid #252938;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 3px 6px;
+    }
+
+    .stepper-btn {
+      width: 28px;
+      height: 28px;
+      background: #202432;
+      border: 1px solid #2d3345;
+      border-radius: 50%;
+      color: #9299af;
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .stepper-btn:hover { background: #2f3448; color: #fff; }
+
+    .stepper-row input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 800;
+      width: 65px;
+      text-align: center;
+      outline: none;
+      font-feature-settings: "tnum";
+    }
+
+    .chips-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .chip-item {
+      background: #191c26;
+      border: 1px solid #232736;
+      color: #8f95a9;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 5px 0;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    .chip-item:hover { background: #242938; color: #fff; }
+
+    .btn-action-aviator {
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      color: #ffffff;
+      transition: transform 0.06s, filter 0.15s;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+    .btn-action-aviator:active { transform: scale(0.97); }
+
+    .btn-bg-bet { background: var(--aviator-green); }
+    .btn-bg-bet:hover { background: var(--aviator-green-hover); }
+    .btn-bg-waiting { background: #c72929; }
+    .btn-bg-cashout {
+      background: linear-gradient(135deg, #ff8c00, #e5053a);
+      animation: glowPulse 0.9s infinite alternate;
+    }
+
+    @keyframes glowPulse {
+      0% { box-shadow: 0 0 10px rgba(255, 140, 0, 0.6); }
+      100% { box-shadow: 0 0 24px rgba(229, 5, 58, 0.9); }
+    }
+
+    .btn-label-large {
+      font-size: 1.15rem;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-sub-value {
+      font-size: 0.82rem;
+      font-weight: 800;
+      margin-top: 3px;
+      opacity: 0.95;
+    }
+
+    .auto-settings-row {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: #090a0d;
+      border: 1px solid #252938;
+      border-radius: 12px;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+    }
+
+    .auto-settings-row input {
+      background: #191c26;
+      border: 1px solid #2d3345;
+      border-radius: 6px;
+      color: #fff;
+      font-weight: 800;
+      width: 65px;
+      padding: 3px 6px;
+      text-align: center;
+      outline: none;
+    }
+
+    .bottom-section {
+      background: var(--bg-panel);
+      border-radius: 16px;
+      border: 1px solid #1f222d;
+      overflow: hidden;
+    }
+
+    .bottom-tabs {
+      display: flex;
+      background: #0d0f15;
+      border-bottom: 1px solid #1c1f2c;
+    }
+
+    .b-tab {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-gray);
+      padding: 10px 0;
+      font-size: 0.76rem;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .b-tab.active {
+      color: #fff;
+      border-bottom-color: #e5053a;
+    }
+
+    .tab-pane {
+      padding: 10px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .stat-row-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-gray);
+      padding-bottom: 8px;
+      border-bottom: 1px solid #1a1d28;
+      margin-bottom: 6px;
+    }
+
+    .bets-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+    }
+
+    .bets-table th {
+      text-align: left;
+      color: var(--text-gray);
+      font-weight: 700;
+      padding: 5px 6px;
+    }
+
+    .bets-table td {
+      padding: 6px;
+      border-bottom: 1px solid #151822;
+    }
+
+    .won-pill {
+      font-weight: 800;
+      color: #28a909;
+    }
+
+    .modal-veil {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .modal-card {
+      background: #14161f;
+      border: 1px solid #292e40;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 440px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+    }
+
+    .modal-head {
+      padding: 14px 16px;
+      background: #0f1118;
+      border-bottom: 1px solid #232736;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 800;
+    }
+
+    .modal-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== SPLASH SCREEN ==================== -->
+  <div id="splashScreen">
+    <div class="splash-plane-wrap" id="splashPlaneBox">
+      <canvas id="splashCanvas" width="220" height="140"></canvas>
+    </div>
+    <div class="splash-logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="#e5053a">
+        <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+      </svg>
+      Aviator
+    </div>
+    <div class="splash-progress-track">
+      <div class="splash-progress-fill" id="splashProgress"></div>
+    </div>
+    <div class="splash-subtext" id="splashStatus">Connecting to Game...</div>
+  </div>
+
+  <header>
+    <div class="logo-container">
+      <div class="aviator-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#e5053a">
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+        </svg>
+        Aviator
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="balance-display" id="topBalance">0.00 BDT</div>
+      <button class="btn-header-icon" id="soundBtn" title="Sound Mute/Unmute">🔊</button>
+      <button class="btn-header-icon" onclick="openModal('settingsModal')" title="Settings">⚙️</button>
+      <button class="btn-header-icon" onclick="openModal('profileModal')" title="Profile">👤</button>
+    </div>
+  </header>
+
+  <div class="history-row" id="historyPills"></div>
+
+  <div class="app-container">
+    <div class="viewport-box">
+      <canvas id="flightCanvas"></canvas>
+
+      <div class="multiplier-center">
+        <div class="live-multi-text" id="multiText">1.00x</div>
+        <div class="crash-title" id="crashLabel">FLEW AWAY!</div>
+      </div>
+
+      <div class="countdown-layer" id="countdownBox">
+        <div class="countdown-title">WAITING FOR NEXT ROUND</div>
+        <div class="countdown-timer-val" id="countdownVal">5.0</div>
+        <div class="progress-bar-slot">
+          <div class="progress-bar-fill" id="countdownFill"></div>
+        </div>
+      </div>
+
+      <div class="online-chip">
+        <div class="avatar-stack">
+          <span class="av-1">🐶</span>
+          <span class="av-2">🌙</span>
+          <span class="av-3">🥷</span>
+        </div>
+        <span class="online-count" id="liveUserCount">1</span>
+      </div>
+
+      <div class="game-toast" id="toastMessage"></div>
+    </div>
+
+    <div class="bet-deck">
+      <div class="bet-card" id="card1">
+        <div class="mode-tabs">
+          <button class="mode-tab-btn active" id="tabBet1" onclick="switchBetMode(1, 'bet')">Bet</button>
+          <button class="mode-tab-btn" id="tabAuto1" onclick="switchBetMode(1, 'auto')">Auto</button>
+        </div>
+
+        <div class="bet-card-main">
+          <div class="inputs-left">
+            <div class="stepper-row">
+              <button class="stepper-btn" onclick="modifyBet(1, -1)">−</button>
+              <input type="number" id="inputBet1" value="1.00" step="1" min="1" max="10000" />
+              <button class="stepper-btn" onclick="modifyBet(1, 1)">+</button>
+            </div>
+            <div class="chips-grid">
+              <button class="chip-item" onclick="setFixedBet(1, 100)">100</button>
+              <button class="chip-item" onclick="setFixedBet(1, 200)">200</button>
+              <button class="chip-item" onclick="setFixedBet(1, 500)">500</button>
+              <button class="chip-item" onclick="setFixedBet(1, 10000)">10,000</button>
+            </div>
+          </div>
+
+          <button class="btn-action-aviator btn-bg-bet" id="mainBtn1" onclick="handleButtonClick(1)">
+            <span class="btn-label-large" id="btnTitle1">Bet</span>
+            <span class="btn-sub-value" id="btnSub1">1.00 BDT</span>
+          </button>
+        </div>
+
+        <div class="auto-settings-row" id="autoRow1">
+          <span style="color:var(--text-gray)">Auto Cash Out:</span>
+          <div>
+            <input type="number" id="autoCashInput1" value="2.00" step="0.1" min="1.1" />
+            <span style="font-weight:bold; margin-left:2px;">x</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bet-card" id="card2">
+        <div class="mode-tabs">
+          <button class="mode-tab-btn active" id="tabBet2" onclick="switchBetMode(2, 'bet')">Bet</button>
+          <button class="mode-tab-btn" id="tabAuto2" onclick="switchBetMode(2, 'auto')">Auto</button>
+        </div>
+
+        <div class="bet-card-main">
+          <div class="inputs-left">
+            <div class="stepper-row">
+              <button class="stepper-btn" onclick="modifyBet(2, -1)">−</button>
+              <input type="number" id="inputBet2" value="1.00" step="1" min="1" max="10000" />
+              <button class="stepper-btn" onclick="modifyBet(2, 1)">+</button>
+            </div>
+            <div class="chips-grid">
+              <button class="chip-item" onclick="setFixedBet(2, 100)">100</button>
+              <button class="chip-item" onclick="setFixedBet(2, 200)">200</button>
+              <button class="chip-item" onclick="setFixedBet(2, 500)">500</button>
+              <button class="chip-item" onclick="setFixedBet(2, 10000)">10,000</button>
+            </div>
+          </div>
+
+          <button class="btn-action-aviator btn-bg-bet" id="mainBtn2" onclick="handleButtonClick(2)">
+            <span class="btn-label-large" id="btnTitle2">Bet</span>
+            <span class="btn-sub-value" id="btnSub2">1.00 BDT</span>
+          </button>
+        </div>
+
+        <div class="auto-settings-row" id="autoRow2">
+          <span style="color:var(--text-gray)">Auto Cash Out:</span>
+          <div>
+            <input type="number" id="autoCashInput2" value="1.50" step="0.1" min="1.1" />
+            <span style="font-weight:bold; margin-left:2px;">x</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-section">
+      <div class="bottom-tabs">
+        <button class="b-tab active" onclick="showSubTab('allBetsPane', this)">All Bets</button>
+        <button class="b-tab" onclick="showSubTab('myBetsPane', this)">Previous</button>
+        <button class="b-tab" onclick="showSubTab('topPane', this)">Top</button>
+      </div>
+
+      <div class="tab-pane" id="allBetsPane">
+        <div class="stat-row-summary">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <div class="avatar-stack">
+              <span class="av-1">🐶</span>
+              <span class="av-2">🌙</span>
+              <span class="av-3">🥷</span>
+            </div>
+            <span id="tabBetsCount">3725/4161 Bets</span>
+          </div>
+          <div>
+            <strong style="color:#fff;" id="tabWinTotal">63,234.45</strong>
+            <span style="margin-left: 3px;">Total win BDT</span>
+          </div>
+        </div>
+
+        <table class="bets-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Bet BDT</th>
+              <th>Cash Out</th>
+            </tr>
+          </thead>
+          <tbody id="botsTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="tab-pane" id="myBetsPane" style="display:none;">
+        <table class="bets-table">
+          <thead>
+            <tr>
+              <th>Round</th>
+              <th>Bet</th>
+              <th>Multiplier</th>
+              <th>Payout</th>
+            </tr>
+          </thead>
+          <tbody id="myBetsTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="tab-pane" id="topPane" style="display:none;">
+        <table class="bets-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Multiplier</th>
+              <th>Win BDT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>@SkyRider_BD</td><td><strong style="color:var(--aviator-purple)">89.42x</strong></td><td>89,420.00</td></tr>
+            <tr><td>@AlphaPilot</td><td><strong style="color:var(--aviator-purple)">45.20x</strong></td><td>45,200.00</td></tr>
+            <tr><td>@Tiger_Dhaka</td><td><strong style="color:var(--aviator-blue)">18.50x</strong></td><td>18,500.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-veil" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span>Settings</span>
+        <span style="cursor:pointer;" onclick="closeModal('settingsModal')">✕</span>
+      </div>
+      <div class="modal-body">
+        <div>
+          <label style="display:block; margin-bottom:4px; font-weight:bold;">Firebase Integration Status</label>
+          <div style="font-size:0.75rem; color:#8f95a9; background:#090a0d; padding:8px; border-radius:6px;" id="fbStatusText">
+            Connecting to Realtime Database...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-veil" id="profileModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span>Pilot Profile</span>
+        <span style="cursor:pointer;" onclick="closeModal('profileModal')">✕</span>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; justify-content:space-between;">
+          <span>Pilot Phone / UID:</span>
+          <strong id="pilotUidText">User</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>Rounds Played:</span>
+          <strong id="statRounds">0</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>Best Multiplier:</span>
+          <strong id="statBest">1.00x</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================
+       1. MATCHING FIREBASE RTDB WALLET SYNC (MATCHED WITH FD44)
+       ========================================================== */
+    const firebaseConfig = {
+      apiKey: "AIzaSyDuqS2ujSIBbsUcdjg_gtZw0j67v4jguuM",
+      authDomain: "fd44-58291.firebaseapp.com",
+      databaseURL: "https://fd44-58291-default-rtdb.firebaseio.com",
+      projectId: "fd44-58291",
+      storageBucket: "fd44-58291.firebasestorage.app",
+      messagingSenderId: "854551788762",
+      appId: "1:854551788762:web:acb5b7994f1ac77255b9e3",
+      measurementId: "G-BJWS0YTBQV"
+    };
+
+    let rtdb = null;
+    let currentUserPhone = null;
+
+    function initSharedDatabase() {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      rtdb = firebase.database();
+
+      // Detection priority: URL query -> Iframe parent window -> localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      let phoneParam = urlParams.get('phone') || urlParams.get('user');
+
+      if (!phoneParam && window.parent && window.parent !== window && window.parent.user) {
+        phoneParam = window.parent.user.phone;
+      }
+      if (!phoneParam) {
+        phoneParam = localStorage.getItem('bd99_user');
+      }
+
+      currentUserPhone = phoneParam;
+
+      if (currentUserPhone) {
+        document.getElementById('pilotUidText').innerText = currentUserPhone;
+        document.getElementById('fbStatusText').innerText = "✅ Realtime Synced with Main FD44 Account!";
+        document.getElementById('fbStatusText').style.color = "#28a909";
+
+        // Listen for balance changes in real-time
+        rtdb.ref('users/' + currentUserPhone).on('value', snap => {
+          if (snap.exists()) {
+            const data = snap.val();
+            state.balance = parseFloat(data.balance || 0);
+            updateBalanceDisplay();
+            if (data.uid) {
+              document.getElementById('pilotUidText').innerText = `${currentUserPhone} (${data.uid})`;
+            }
+
+            // Sync with parent frame badge
+            try {
+              if (window.parent && window.parent.document) {
+                window.parent.document.querySelectorAll('.userBalance').forEach(e => {
+                  e.innerText = state.balance.toFixed(2);
+                });
+              }
+            } catch(e) {}
+          }
+        });
+      } else {
+        document.getElementById('fbStatusText').innerText = "⚠️ Demo Mode (Login on Main Site to Sync Balance)";
+      }
+    }
+
+    function mutateSharedBalance(delta) {
+      state.balance += delta;
+      updateBalanceDisplay();
+
+      if (rtdb && currentUserPhone) {
+        rtdb.ref('users/' + currentUserPhone + '/balance').transaction(current => {
+          let val = parseFloat(current || 0);
+          return parseFloat((val + delta).toFixed(2));
+        });
+
+        // Deduct wager requirement if bet placed
+        if (delta < 0) {
+          rtdb.ref('users/' + currentUserPhone + '/wager_left').transaction(current => {
+            let left = parseFloat(current || 0) + delta;
+            return left < 0 ? 0 : parseFloat(left.toFixed(2));
+          });
+        }
+
+        // Notify parent FD44 page immediately
+        if (window.parent && window.parent !== window) {
+          try {
+            if (window.parent.user) window.parent.user.balance = state.balance;
+            if (typeof window.parent.updateUI === 'function') window.parent.updateUI();
+            if (window.parent.document) {
+              window.parent.document.querySelectorAll('.userBalance').forEach(e => {
+                e.innerText = state.balance.toFixed(2);
+              });
+            }
+          } catch(e) {}
+        }
+      }
+    }
+
+    /* ==========================================================
+       2. SOUND ENGINE
+       ========================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.engineOsc = null;
+        this.engineGain = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      toggle() {
+        this.muted = !this.muted;
+        if (this.muted) {
+          this.stopFlightSound();
+          if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+        return this.muted;
+      }
+
+      playLetsGoVoice() {
+        if (this.muted) return;
+        try {
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance("Let's go!");
+            msg.rate = 1.15;
+            msg.pitch = 1.25;
+            msg.volume = 1.0;
+            window.speechSynthesis.speak(msg);
+          }
+        } catch(e) {}
+      }
+
+      beep(freq = 600, dur = 0.08) {
+        if (this.muted) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + dur);
+        } catch(e) {}
+      }
+
+      startFlightSound() {
+        if (this.muted) return;
+        this.init();
+        try {
+          this.engineOsc = this.ctx.createOscillator();
+          this.engineGain = this.ctx.createGain();
+          this.engineOsc.type = 'sawtooth';
+          this.engineOsc.frequency.setValueAtTime(80, this.ctx.currentTime);
+          this.engineGain.gain.setValueAtTime(0.035, this.ctx.currentTime);
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(320, this.ctx.currentTime);
+
+          this.engineOsc.connect(filter);
+          filter.connect(this.engineGain);
+          this.engineGain.connect(this.ctx.destination);
+          this.engineOsc.start();
+        } catch(e) {}
+      }
+
+      updateFlightPitch(m) {
+        if (this.muted || !this.engineOsc) return;
+        try {
+          const freq = Math.min(80 + m * 28, 480);
+          this.engineOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.1);
+        } catch(e) {}
+      }
+
+      stopFlightSound() {
+        if (this.engineOsc) {
+          try {
+            this.engineOsc.stop();
+            this.engineOsc.disconnect();
+          } catch(e) {}
+          this.engineOsc = null;
+        }
+      }
+
+      cashoutJingle() {
+        if (this.muted) return;
+        this.init();
+        [523.25, 659.25, 783.99].forEach((f, i) => {
+          try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.frequency.setValueAtTime(f, this.ctx.currentTime + i * 0.06);
+            gain.gain.setValueAtTime(0.2, this.ctx.currentTime + i * 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.06 + 0.22);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + i * 0.06);
+            osc.stop(this.ctx.currentTime + i * 0.06 + 0.22);
+          } catch(e) {}
+        });
+      }
+
+      crashNoise() {
+        if (this.muted) return;
+        this.init();
+        try {
+          const bSize = this.ctx.sampleRate * 0.45;
+          const b = this.ctx.createBuffer(1, bSize, this.ctx.sampleRate);
+          const d = b.getChannelData(0);
+          for (let i = 0; i < bSize; i++) d[i] = Math.random() * 2 - 1;
+          const src = this.ctx.createBufferSource();
+          src.buffer = b;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(260, this.ctx.currentTime);
+          filter.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.45);
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.45);
+          src.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          src.start();
+        } catch(e) {}
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* ==========================================================
+       3. STATE & TOASTS
+       ========================================================== */
+    let state = {
+      balance: 0.00,
+      stats: { rounds: 0, wins: 0, highest: 1.00 },
+      history: [1.55, 1.46, 1.70, 27.21, 3.16, 1.92, 5.69, 4.68, 1.24, 2.18],
+      myBets: []
+    };
+
+    function updateBalanceDisplay() {
+      document.getElementById('topBalance').innerText = state.balance.toFixed(2) + ' BDT';
+    }
+
+    let toastTimeout = null;
+    function showToast(text, isSuccess) {
+      const toast = document.getElementById('toastMessage');
+      toast.innerText = text;
+      toast.className = 'game-toast ' + (isSuccess ? 'toast-success' : 'toast-loss');
+      toast.style.display = 'block';
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2500);
+    }
+
+    /* ==========================================================
+       4. PLANE RENDERER & GRAPHICS
+       ========================================================== */
+    const canvas = document.getElementById('flightCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = 0, height = 0;
+    let propSpinAngle = 0;
+
+    let clouds = [];
+    function initClouds() {
+      clouds = [];
+      for (let i = 0; i < 7; i++) {
+        clouds.push({
+          x: Math.random() * width,
+          y: 20 + Math.random() * (height * 0.65),
+          speed: 0.4 + Math.random() * 0.9,
+          radius: 24 + Math.random() * 32,
+          alpha: 0.04 + Math.random() * 0.07
+        });
+      }
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      width = rect.width;
+      height = rect.height;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+      initClouds();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    const PLANE_SCALE = 0.42;
+    const P_BODY    = new Path2D("M68 138 C122 116 222 106 292 110 C316 112 326 124 314 136 C300 150 222 160 150 160 C108 160 84 152 68 146 Z");
+    const P_UPWING  = new Path2D("M150 116 L108 56 L178 52 L268 112 Z");
+    const P_LOWWING = new Path2D("M150 154 L96 208 L150 214 L246 158 Z");
+    const P_FIN     = new Path2D("M72 138 L46 88 C44 84 50 82 54 85 L102 128 Z");
+    const P_STAB    = new Path2D("M72 146 L32 162 L62 170 L116 154 Z");
+    const P_CANOPY  = new Path2D("M196 112 C204 90 240 90 252 112 Z");
+    const P_GLASS   = new Path2D("M201 111 C208 95 238 95 247 111 Z");
+
+    function drawAviatorPlaneGeneral(context, x, y, angle, scaleVal = PLANE_SCALE) {
+      const lg = (x1, y1, x2, y2, colors) => {
+        const g = context.createLinearGradient(x1, y1, x2, y2);
+        colors.forEach((c, i) => g.addColorStop(i / (colors.length - 1), c));
+        return g;
+      };
+
+      context.save();
+      context.translate(x, y);
+      context.rotate(angle);
+      context.scale(scaleVal, scaleVal);
+      context.translate(-190, -130);
+
+      context.fillStyle = lg(96, 154, 246, 214, ['#0e9e3a', '#033f14']);
+      context.fill(P_LOWWING);
+
+      context.strokeStyle = '#032a0d';
+      context.lineWidth = 3;
+      context.lineCap = 'round';
+      context.beginPath();
+      context.moveTo(140, 112); context.lineTo(128, 196);
+      context.moveTo(228, 116); context.lineTo(232, 160);
+      context.stroke();
+
+      context.fillStyle = lg(32, 146, 116, 170, ['#0e9e3a', '#033f14']);
+      context.fill(P_STAB);
+      context.fillStyle = lg(46, 85, 102, 138, ['#3dff74', '#08772a']);
+      context.fill(P_FIN);
+
+      context.shadowColor = 'rgba(40,255,110,0.8)';
+      context.shadowBlur = 14;
+      context.fillStyle = lg(0, 110, 0, 160, ['#5dff8a', '#14c24a', '#0a8a30', '#044a18']);
+      context.fill(P_BODY);
+      context.shadowBlur = 0;
+
+      context.strokeStyle = 'rgba(255,255,255,0.55)';
+      context.lineWidth = 3;
+      context.beginPath();
+      context.moveTo(90, 130);
+      context.bezierCurveTo(140, 116, 220, 112, 286, 114);
+      context.stroke();
+
+      context.strokeStyle = '#ffffff';
+      context.lineWidth = 5;
+      context.beginPath();
+      context.moveTo(150, 124); context.lineTo(172, 148);
+      context.moveTo(172, 124); context.lineTo(150, 148);
+      context.stroke();
+
+      context.fillStyle = '#06561e';
+      context.fill(P_CANOPY);
+      context.fillStyle = lg(201, 95, 247, 111, ['#9fd8ff', '#2a3a55', '#0c1220']);
+      context.fill(P_GLASS);
+      context.fillStyle = '#0a0a10';
+      context.beginPath();
+      context.arc(224, 104, 5, 0, Math.PI * 2);
+      context.fill();
+
+      context.strokeStyle = '#2a2a33';
+      context.lineWidth = 4;
+      context.beginPath();
+      context.moveTo(214, 158); context.lineTo(228, 192);
+      context.moveTo(252, 152); context.lineTo(236, 192);
+      context.stroke();
+      context.fillStyle = '#15151c';
+      context.beginPath();
+      context.arc(232, 198, 14, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = '#c9c9d2';
+      context.beginPath();
+      context.arc(232, 198, 6, 0, Math.PI * 2);
+      context.fill();
+
+      context.fillStyle = lg(108, 52, 268, 116, ['#3dff74', '#08772a']);
+      context.fill(P_UPWING);
+      context.strokeStyle = 'rgba(157,255,187,0.8)';
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(108, 56); context.lineTo(178, 52);
+      context.stroke();
+
+      const cg = context.createRadialGradient(298, 114, 2, 304, 124, 26);
+      cg.addColorStop(0, '#8dffae');
+      cg.addColorStop(0.5, '#12b343');
+      cg.addColorStop(1, '#054d1b');
+      context.fillStyle = cg;
+      context.beginPath();
+      context.ellipse(304, 124, 20, 23, 0, 0, Math.PI * 2);
+      context.fill();
+
+      context.save();
+      context.translate(322, 124);
+      context.fillStyle = 'rgba(93,255,138,0.28)';
+      context.beginPath();
+      context.ellipse(0, 0, 9, 74, 0, 0, Math.PI * 2);
+      context.fill();
+      context.scale(1, Math.max(0.15, Math.abs(Math.cos(propSpinAngle))));
+      context.fillStyle = '#2a2a33';
+      context.fillRect(-3, -72, 6, 144);
+      context.fillStyle = '#ffcc33';
+      context.fillRect(-3, -72, 6, 12);
+      context.fillRect(-3, 60, 6, 12);
+      context.restore();
+
+      context.fillStyle = '#e8e8ee';
+      context.beginPath();
+      context.ellipse(324, 124, 7, 9, 0, 0, Math.PI * 2);
+      context.fill();
+
+      context.restore();
+    }
+
+    function drawAviatorPlane(x, y, angle) {
+      drawAviatorPlaneGeneral(ctx, x, y, angle, PLANE_SCALE);
+    }
+
+    function drawSkyEnvironment() {
+      ctx.save();
+      ctx.fillStyle = '#06070a';
+      ctx.fillRect(0, 0, width, height);
+
+      const cx = width * 0.45;
+      const cy = height * 0.55;
+      const numRays = 28;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
+
+      for (let i = 0; i < numRays; i += 2) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        const a1 = (i / numRays) * Math.PI * 2;
+        const a2 = ((i + 1) / numRays) * Math.PI * 2;
+        ctx.arc(cx, cy, Math.max(width, height) * 1.5, a1, a2);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      const blueGlow = ctx.createRadialGradient(cx, cy, 10, cx, cy, width * 0.45);
+      blueGlow.addColorStop(0, 'rgba(0, 140, 255, 0.18)');
+      blueGlow.addColorStop(0.5, 'rgba(0, 70, 160, 0.08)');
+      blueGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = blueGlow;
+      ctx.fillRect(0, 0, width, height);
+
+      clouds.forEach(cl => {
+        if (currentPhase === STATE_FLYING) {
+          cl.x -= cl.speed * (1 + currentMulti * 0.35);
+        } else {
+          cl.x -= cl.speed * 0.3;
+        }
+
+        if (cl.x + cl.radius * 2 < 0) {
+          cl.x = width + cl.radius * 2;
+          cl.y = 20 + Math.random() * (height * 0.65);
+        }
+
+        ctx.fillStyle = `rgba(255, 255, 255, ${cl.alpha})`;
+        ctx.beginPath();
+        ctx.arc(cl.x, cl.y, cl.radius, 0, Math.PI * 2);
+        ctx.arc(cl.x + cl.radius * 0.6, cl.y - cl.radius * 0.2, cl.radius * 0.7, 0, Math.PI * 2);
+        ctx.arc(cl.x - cl.radius * 0.6, cl.y + cl.radius * 0.1, cl.radius * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.restore();
+    }
+
+    function drawRichRedTrajectory(planeX, planeY) {
+      const originX = 0;
+      const originY = height;
+
+      ctx.save();
+      const fillGrad = ctx.createLinearGradient(0, planeY, 0, originY);
+      fillGrad.addColorStop(0, 'rgba(20, 200, 74, 0.85)');
+      fillGrad.addColorStop(0.6, 'rgba(10, 138, 48, 0.55)');
+      fillGrad.addColorStop(1, 'rgba(4, 74, 24, 0.25)');
+
+      ctx.beginPath();
+      ctx.moveTo(originX, originY);
+      const cpX = originX + (planeX - originX) * 0.52;
+      const cpY = originY;
+      ctx.quadraticCurveTo(cpX, cpY, planeX, planeY);
+      ctx.lineTo(planeX, originY);
+      ctx.closePath();
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(originX, originY);
+      ctx.quadraticCurveTo(cpX, cpY, planeX, planeY);
+      ctx.strokeStyle = '#3dff74';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#28ff6e';
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(planeX, planeY);
+      ctx.lineTo(planeX, originY);
+      ctx.strokeStyle = 'rgba(61, 255, 116, 0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    /* ==========================================================
+       5. GAME PHASES & BOTS
+       ========================================================== */
+    const STATE_COUNTDOWN = 'COUNTDOWN';
+    const STATE_FLYING = 'FLYING';
+    const STATE_CRASHED = 'CRASHED';
+
+    let currentPhase = STATE_COUNTDOWN;
+    let roundStartTimestamp = 0;
+    let currentMulti = 1.00;
+    let crashTarget = 2.00;
+    let countdownVal = 5.0;
+    let countdownTimer = null;
+
+    let currentOnlineCount = 1;
+    let targetOnlineCount = 2349;
+
+    let totalBetsPlacedCount = 4161;
+    let cashedOutBetsCount = 0;
+    let dynamicWinTotalBDT = 0.00;
+    let targetRoundWinBDT = 65000.00;
+
+    const bets = [
+      null,
+      { amount: 1.0, hasBet: false, queuedForNext: false, cashedOut: false, autoMode: false, autoCash: 2.0 },
+      { amount: 1.0, hasBet: false, queuedForNext: false, cashedOut: false, autoMode: false, autoCash: 1.5 }
+    ];
+
+    let simulatedBots = [];
+
+    function populateSimulatedBots() {
+      const pool = [
+        'LuckyRider', 'DhakaKing', 'AeroStorm', 'RedDevil', 'Falcon77',
+        'BD_Pilot', 'CryptoAce', 'TigerEye', 'ApexSky', 'SkyJetBD',
+        'SylhetHunter', 'ChittagongPro', 'SpeedMaster', 'GoldRider'
+      ];
+      simulatedBots = [];
+      const count = 16 + Math.floor(Math.random() * 8);
+
+      const stakeOptions = [10000, 5000, 2000, 1000, 500, 200, 100, 50];
+
+      for (let i = 0; i < count; i++) {
+        const betAmount = stakeOptions[Math.floor(Math.random() * stakeOptions.length)];
+        simulatedBots.push({
+          name: pool[i % pool.length] + '_' + Math.floor(10 + Math.random() * 89),
+          bet: betAmount,
+          target: parseFloat((1.12 + Math.random() * 5.2).toFixed(2)),
+          cashed: false,
+          payout: 0
+        });
+      }
+
+      for (let i = 1; i <= 2; i++) {
+        if (bets[i].hasBet) {
+          simulatedBots.push({
+            name: 'You (Panel ' + i + ')',
+            bet: bets[i].amount,
+            target: bets[i].autoMode ? bets[i].autoCash : 999,
+            cashed: bets[i].cashedOut,
+            payout: bets[i].amount * currentMulti,
+            isUser: true
+          });
+        }
+      }
+
+      simulatedBots.sort((a, b) => b.bet - a.bet);
+
+      totalBetsPlacedCount = 3800 + Math.floor(Math.random() * 950);
+      cashedOutBetsCount = 0;
+      dynamicWinTotalBDT = 0.00;
+      targetRoundWinBDT = 50000 + Math.random() * 45000;
+
+      updateSummaryDisplay();
+      renderBots();
+    }
+
+    function updateSummaryDisplay() {
+      document.getElementById('tabBetsCount').innerText = `${cashedOutBetsCount}/${totalBetsPlacedCount} Bets`;
+      document.getElementById('tabWinTotal').innerText = dynamicWinTotalBDT.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function renderBots() {
+      const tbody = document.getElementById('botsTableBody');
+      tbody.innerHTML = '';
+      simulatedBots.forEach(b => {
+        const tr = document.createElement('tr');
+        if (b.isUser) tr.style.background = 'rgba(40, 169, 9, 0.12)';
+        tr.innerHTML = `
+          <td><strong>${b.name}</strong></td>
+          <td>${b.bet.toFixed(2)}</td>
+          <td>${b.cashed ? `<span class="won-pill">${b.target.toFixed(2)}x (+${b.payout.toFixed(2)})</span>` : '<span style="color:var(--text-gray)">In Flight</span>'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function generateTargetCrash() {
+      const r = Math.random();
+      if (r < 0.035) return 1.00;
+      const raw = 0.97 / (1 - r);
+      return parseFloat(Math.min(Math.max(1.01, raw), 150.0).toFixed(2));
+    }
+
+    function startCountdown() {
+      currentPhase = STATE_COUNTDOWN;
+      countdownVal = 5.0;
+      crashTarget = generateTargetCrash();
+      populateSimulatedBots();
+
+      currentOnlineCount = 1;
+      targetOnlineCount = 1800 + Math.floor(Math.random() * 900);
+      document.getElementById('liveUserCount').innerText = '1';
+
+      document.getElementById('multiText').style.display = 'none';
+      document.getElementById('crashLabel').style.display = 'none';
+      document.getElementById('countdownBox').style.display = 'block';
+
+      for (let i = 1; i <= 2; i++) {
+        bets[i].cashedOut = false;
+        if (bets[i].queuedForNext) {
+          bets[i].hasBet = true;
+          bets[i].queuedForNext = false;
+          setButtonWaiting(i);
+        } else if (bets[i].hasBet) {
+          setButtonWaiting(i);
+        } else {
+          setButtonBet(i);
+        }
+      }
+
+      let lastSec = 5;
+      if (countdownTimer) clearInterval(countdownTimer);
+
+      countdownTimer = setInterval(() => {
+        countdownVal -= 0.1;
+        if (countdownVal < 0) countdownVal = 0;
+
+        const progress = (5.0 - countdownVal) / 5.0;
+        currentOnlineCount = Math.max(1, Math.floor(progress * targetOnlineCount));
+        document.getElementById('liveUserCount').innerText = currentOnlineCount.toLocaleString();
+
+        const sec = Math.ceil(countdownVal);
+        if (sec !== lastSec && sec > 0) {
+          sound.beep(520, 0.08);
+          lastSec = sec;
+        }
+
+        document.getElementById('countdownVal').innerText = countdownVal.toFixed(1);
+        document.getElementById('countdownFill').style.width = ((countdownVal / 5.0) * 100) + '%';
+
+        if (countdownVal <= 0) {
+          clearInterval(countdownTimer);
+          document.getElementById('countdownBox').style.display = 'none';
+          document.getElementById('multiText').style.display = 'block';
+          launchFlight();
+        }
+      }, 100);
+    }
+
+    function launchFlight() {
+      currentPhase = STATE_FLYING;
+      roundStartTimestamp = performance.now();
+      currentMulti = 1.00;
+
+      sound.playLetsGoVoice();
+      sound.startFlightSound();
+
+      for (let i = 1; i <= 2; i++) {
+        if (bets[i].hasBet) {
+          setButtonCashout(i);
+        }
+      }
+    }
+
+    function triggerCrash() {
+      currentPhase = STATE_CRASHED;
+      sound.stopFlightSound();
+      sound.crashNoise();
+
+      document.getElementById('crashLabel').style.display = 'block';
+
+      let hadActiveBet = false;
+      for (let i = 1; i <= 2; i++) {
+        if (bets[i].hasBet && !bets[i].cashedOut && !bets[i].queuedForNext) {
+          hadActiveBet = true;
+          recordRoundOutcome(i, false, bets[i].amount, 0);
+          bets[i].hasBet = false;
+          setButtonBet(i);
+        }
+      }
+
+      if (hadActiveBet) {
+        showToast('You Lost! 💔 Better luck next round', false);
+      }
+
+      state.history.unshift(currentMulti);
+      if (state.history.length > 25) state.history.pop();
+      renderHistory();
+
+      setTimeout(() => {
+        startCountdown();
+      }, 2500);
+    }
+
+    /* ==========================================================
+       6. BETTING ACTIONS
+       ========================================================== */
+    function modifyBet(panelId, delta) {
+      if (bets[panelId].hasBet || bets[panelId].queuedForNext) return;
+      const input = document.getElementById('inputBet' + panelId);
+      let val = parseFloat(input.value) || 1;
+      val = Math.max(1, Math.min(10000, val + delta));
+      input.value = val;
+      updateSubLabel(panelId);
+    }
+
+    function setFixedBet(panelId, val) {
+      if (bets[panelId].hasBet || bets[panelId].queuedForNext) return;
+      const input = document.getElementById('inputBet' + panelId);
+      input.value = val;
+      updateSubLabel(panelId);
+    }
+
+    function updateSubLabel(panelId) {
+      if (!bets[panelId].hasBet && !bets[panelId].queuedForNext) {
+        const val = parseFloat(document.getElementById('inputBet' + panelId).value) || 1;
+        document.getElementById('btnSub' + panelId).innerText = val.toFixed(2) + ' BDT';
+      }
+    }
+
+    function switchBetMode(panelId, mode) {
+      document.getElementById('tabBet' + panelId).classList.toggle('active', mode === 'bet');
+      document.getElementById('tabAuto' + panelId).classList.toggle('active', mode === 'auto');
+      document.getElementById('autoRow' + panelId).style.display = (mode === 'auto') ? 'flex' : 'none';
+      bets[panelId].autoMode = (mode === 'auto');
+    }
+
+    function setButtonBet(panelId) {
+      const btn = document.getElementById('mainBtn' + panelId);
+      btn.className = 'btn-action-aviator btn-bg-bet';
+      document.getElementById('btnTitle' + panelId).innerText = 'Bet';
+      updateSubLabel(panelId);
+    }
+
+    function setButtonWaiting(panelId) {
+      const btn = document.getElementById('mainBtn' + panelId);
+      btn.className = 'btn-action-aviator btn-bg-waiting';
+      document.getElementById('btnTitle' + panelId).innerText = 'Cancel';
+      document.getElementById('btnSub' + panelId).innerText = 'WAITING';
+    }
+
+    function setButtonNextRound(panelId) {
+      const btn = document.getElementById('mainBtn' + panelId);
+      btn.className = 'btn-action-aviator btn-bg-waiting';
+      document.getElementById('btnTitle' + panelId).innerText = 'NEXT ROUND';
+      document.getElementById('btnSub' + panelId).innerText = 'CANCEL';
+    }
+
+    function setButtonCashout(panelId) {
+      const btn = document.getElementById('mainBtn' + panelId);
+      btn.className = 'btn-action-aviator btn-bg-cashout';
+      document.getElementById('btnTitle' + panelId).innerText = 'Cash Out';
+      const liveWin = (bets[panelId].amount * currentMulti).toFixed(2);
+      document.getElementById('btnSub' + panelId).innerText = liveWin + ' BDT';
+    }
+
+    function handleButtonClick(panelId) {
+      sound.init();
+      const b = bets[panelId];
+
+      if (currentPhase === STATE_FLYING && b.hasBet && !b.cashedOut && !b.queuedForNext) {
+        cashoutBet(panelId);
+        return;
+      }
+
+      if (b.queuedForNext) {
+        mutateSharedBalance(+b.amount);
+        b.queuedForNext = false;
+        b.hasBet = false;
+        setButtonBet(panelId);
+        showToast('Next round bet cancelled', false);
+        return;
+      }
+
+      if (b.hasBet && currentPhase === STATE_COUNTDOWN) {
+        mutateSharedBalance(+b.amount);
+        b.hasBet = false;
+        setButtonBet(panelId);
+        return;
+      }
+
+      const betVal = parseFloat(document.getElementById('inputBet' + panelId).value) || 1;
+      if (state.balance < betVal) {
+        alert('অপর্যাপ্ত ব্যালেন্স! আপনার ব্যালেন্সে পর্যাপ্ত টাকা নেই।');
+        return;
+      }
+
+      mutateSharedBalance(-betVal);
+
+      b.amount = betVal;
+      const autoInput = parseFloat(document.getElementById('autoCashInput' + panelId).value) || 2.0;
+      b.autoCash = autoInput;
+
+      if (currentPhase === STATE_FLYING || currentPhase === STATE_CRASHED) {
+        b.queuedForNext = true;
+        b.hasBet = false;
+        b.cashedOut = false;
+        setButtonNextRound(panelId);
+        showToast('Bet placed for NEXT ROUND', true);
+      } else {
+        b.hasBet = true;
+        b.queuedForNext = false;
+        b.cashedOut = false;
+        setButtonWaiting(panelId);
+      }
+    }
+
+    function cashoutBet(panelId) {
+      const b = bets[panelId];
+      if (!b.hasBet || b.cashedOut) return;
+
+      b.cashedOut = true;
+      const payout = parseFloat((b.amount * currentMulti).toFixed(2));
+      
+      mutateSharedBalance(+payout);
+
+      sound.cashoutJingle();
+      recordRoundOutcome(panelId, true, b.amount, currentMulti, payout);
+
+      showToast(`Successful Cash Out! +${payout.toFixed(2)} BDT (${currentMulti.toFixed(2)}x)`, true);
+
+      const btn = document.getElementById('mainBtn' + panelId);
+      btn.className = 'btn-action-aviator btn-bg-bet';
+      document.getElementById('btnTitle' + panelId).innerText = 'Won';
+      document.getElementById('btnSub' + panelId).innerText = payout.toFixed(2) + ' BDT';
+
+      setTimeout(() => {
+        if (!b.hasBet && !b.queuedForNext) setButtonBet(panelId);
+      }, 1400);
+
+      b.hasBet = false;
+    }
+
+    function recordRoundOutcome(panelId, won, wager, multi, payout = 0) {
+      state.stats.rounds++;
+      if (won) state.stats.wins++;
+      if (multi > state.stats.highest) state.stats.highest = multi;
+
+      state.myBets.unshift({
+        round: state.history.length + 1,
+        bet: wager,
+        multi: won ? multi : 0,
+        payout: payout,
+        won: won
+      });
+      if (state.myBets.length > 20) state.myBets.pop();
+
+      renderMyBetsTable();
+      document.getElementById('statRounds').innerText = state.stats.rounds;
+      document.getElementById('statBest').innerText = state.stats.highest.toFixed(2) + 'x';
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('historyPills');
+      container.innerHTML = '';
+      state.history.forEach(val => {
+        const pill = document.createElement('span');
+        pill.className = 'pill ' + (val >= 10.0 ? 'pill-gold' : val >= 2.0 ? 'pill-purple' : 'pill-blue');
+        pill.innerText = val.toFixed(2) + 'x';
+        container.appendChild(pill);
+      });
+    }
+
+    function renderMyBetsTable() {
+      const tbody = document.getElementById('myBetsTableBody');
+      tbody.innerHTML = '';
+      state.myBets.forEach(b => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>#${b.round}</td>
+          <td>${b.bet.toFixed(2)}</td>
+          <td>${b.won ? `<span class="won-pill">${b.multi.toFixed(2)}x</span>` : '<span style="color:#e5053a">0.00x</span>'}</td>
+          <td>${b.won ? `+${b.payout.toFixed(2)}` : '0.00'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function showSubTab(id, btn) {
+      document.querySelectorAll('.b-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+      btn.classList.add('active');
+      document.getElementById(id).style.display = 'block';
+    }
+
+    /* ==========================================================
+       7. MAIN ANIMATION & REALTIME STATS TICKER
+       ========================================================== */
+    function gameLoop(time) {
+      ctx.clearRect(0, 0, width, height);
+      drawSkyEnvironment();
+      propSpinAngle += 0.45;
+
+      if (currentPhase === STATE_FLYING) {
+        const elapsed = Math.max(0, ((time || performance.now()) - roundStartTimestamp) / 1000);
+        currentMulti = parseFloat((Math.pow(Math.E, 0.068 * elapsed)).toFixed(2));
+        sound.updateFlightPitch(currentMulti);
+
+        document.getElementById('multiText').innerText = currentMulti.toFixed(2) + 'x';
+
+        const progressFrac = Math.min(1, (currentMulti - 1.0) / Math.max(1, (crashTarget - 1.0)));
+        cashedOutBetsCount = Math.floor(progressFrac * (totalBetsPlacedCount * 0.94)) + Math.floor(Math.sin(time * 0.004) * 8);
+        dynamicWinTotalBDT = (progressFrac * targetRoundWinBDT) + (Math.sin(time * 0.003) * 64);
+        if (dynamicWinTotalBDT < 0) dynamicWinTotalBDT = 0;
+        updateSummaryDisplay();
+
+        for (let i = 1; i <= 2; i++) {
+          const b = bets[i];
+          if (b.hasBet && !b.cashedOut && !b.queuedForNext) {
+            const livePayout = (b.amount * currentMulti).toFixed(2);
+            document.getElementById('btnSub' + i).innerText = livePayout + ' BDT';
+
+            if (b.autoMode && currentMulti >= b.autoCash) {
+              cashoutBet(i);
+            }
+          }
+        }
+
+        let botUpdated = false;
+        simulatedBots.forEach(bot => {
+          if (!bot.cashed && currentMulti >= bot.target && currentMulti < crashTarget) {
+            bot.cashed = true;
+            bot.payout = bot.bet * bot.target;
+            botUpdated = true;
+          }
+        });
+        if (botUpdated) renderBots();
+
+        const startX = 40, startY = height - 30;
+        const targetX = width * 0.70;
+        const targetY = height * 0.26;
+
+        const p = 1 - Math.exp(-0.45 * elapsed);
+        const hoverX = Math.sin(time * 0.0016) * 14 * p;
+        const hoverY = Math.sin(time * 0.0032) * 8 * p;
+
+        const planeX = startX + (targetX - startX) * p + hoverX;
+        const planeY = startY + (targetY - startY) * Math.pow(p, 1.25) + hoverY;
+        const planeAngle = -(0.5 - 0.3 * p) + Math.sin(time * 0.003) * 0.03;
+
+        const tdx = -128 * PLANE_SCALE, tdy = 14 * PLANE_SCALE;
+        const tailX = planeX + tdx * Math.cos(planeAngle) - tdy * Math.sin(planeAngle);
+        const tailY = planeY + tdx * Math.sin(planeAngle) + tdy * Math.cos(planeAngle);
+
+        drawRichRedTrajectory(tailX, tailY);
+        drawAviatorPlane(planeX, planeY, planeAngle);
+
+        if (currentMulti >= crashTarget) {
+          currentMulti = crashTarget;
+          document.getElementById('multiText').innerText = crashTarget.toFixed(2) + 'x';
+          triggerCrash();
+        }
+
+      } else if (currentPhase === STATE_CRASHED) {
+      } else {
+        drawAviatorPlane(40, height - 30, -0.15);
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    document.getElementById('soundBtn').addEventListener('click', () => {
+      const isMuted = sound.toggle();
+      document.getElementById('soundBtn').innerText = isMuted ? '🔇' : '🔊';
+    });
+
+    ['1', '2'].forEach(id => {
+      document.getElementById('inputBet' + id).addEventListener('input', () => updateSubLabel(parseInt(id)));
+    });
+
+    /* ==========================================================
+       8. INTRO LOADING SCREEN (PLANE TAKE OFF & ENTER GAME)
+       ========================================================== */
+    function runIntroSplashScreen(onComplete) {
+      const sCanvas = document.getElementById('splashCanvas');
+      const sCtx = sCanvas.getContext('2d');
+      const pFill = document.getElementById('splashProgress');
+      const statusText = document.getElementById('splashStatus');
+      const planeBox = document.getElementById('splashPlaneBox');
+      const splashScreen = document.getElementById('splashScreen');
+
+      let progress = 0;
+      let angle = 0;
+
+      function renderSplashPlane() {
+        sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+        angle += 0.04;
+        const floatY = Math.sin(angle) * 6;
+        propSpinAngle += 0.5;
+        drawAviatorPlaneGeneral(sCtx, 110, 75 + floatY, -0.15, 0.44);
+        if (progress < 100) {
+          requestAnimationFrame(renderSplashPlane);
+        }
+      }
+      renderSplashPlane();
+
+      const loadInterval = setInterval(() => {
+        progress += 3.5;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(loadInterval);
+          pFill.style.width = '100%';
+          statusText.innerText = "Taking Off...";
+
+          setTimeout(() => {
+            planeBox.classList.add('fly-away');
+
+            setTimeout(() => {
+              splashScreen.style.opacity = '0';
+              setTimeout(() => {
+                splashScreen.style.display = 'none';
+                if (onComplete) onComplete();
+              }, 600);
+            }, 600);
+          }, 300);
+        } else {
+          pFill.style.width = progress + '%';
+          if (progress > 55) statusText.innerText = "Connecting Server...";
+        }
+      }, 50);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initSharedDatabase();
+      renderHistory();
+      resizeCanvas();
+
+      runIntroSplashScreen(() => {
+        startCountdown();
+        requestAnimationFrame(gameLoop);
+      });
+    });
+  </script>
+</body>
+</html>
